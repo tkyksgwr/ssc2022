@@ -210,6 +210,10 @@ def get_team_results(df):
     sys.exit()
 
 def get_results(config, df):
+    # page header
+    print('# 試合結果(2部)')
+    print('')
+
     # table header
     title_str = "| {} | {} | {} | {} | {} |".format(
         '対戦日',
