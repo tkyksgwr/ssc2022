@@ -26,8 +26,8 @@ def main():
     # if args.team:
     #     get_team_results(df3)
 
-    # # dump results
-    # get_results(df3)
+    # dump results
+    get_results(config, df)
 
 def read_csv(config):
     """ Read and parse csv then return Pandas DataFrame
@@ -52,6 +52,9 @@ def read_csv(config):
 
     # sort by match_day
     df = df.sort_values(match_day, ascending=False)
+
+    # fill NaN
+    df = df.fillna(' ')
 
     return df
 
@@ -206,15 +209,13 @@ def get_team_results(df):
 
     sys.exit()
 
-def get_results(df):
+def get_results(config, df):
     # table header
-    title_str = "| {} | {} ({}) | {} | {} ({}) | {} |".format(
+    title_str = "| {} | {} | {} | {} | {} |".format(
         '対戦日',
-        'チーム',
-        'ペア',
+        '選手',
         'スコア',
-        'チーム',
-        'ペア',
+        '対戦相手',
         'コメント'
     )
     print(title_str)
@@ -233,23 +234,19 @@ def get_results(df):
     for index, row in df.iterrows():
         # print("index: {}".format(index))
         # print("row: {}".format(row))
-        mteam = row[1]
-        oteam = row[2]
-        mgames = row[3]
+        player = row[1]
+        opponent = row[2]
+        games = row[3]
         ogames = row[4]
-        mpair = row[5]
-        opair = row[6]
-        comment = row[7]
-        gday = row[8]
+        comment = row[5]
+        mday = row[6]
     
-        row_str = "| {} | {} ({}) | {}-{} | {} ({}) | {} |".format(
-            gday,
-            mteam,
-            mpair,
-            mgames,
+        row_str = "| {} | {} | {}-{} | {} | {} |".format(
+            mday,
+            player,
+            games,
             ogames,
-            oteam,
-            opair,
+            opponent,
             comment 
         )
         md_rows.append(row_str)
