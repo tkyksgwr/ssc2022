@@ -21,11 +21,6 @@ def main():
     show_config(config)
 
     df = read_csv(config)
-    # df = pd.read_csv(filepath_or_buffer=args.csv, encoding="utf-8", sep=",")
-    # logging.debug(df)
-    
-    # df2 = df.sort_values('対戦日は？(省略すると本日)', ascending=False) # sort by date
-    # df3 = df2.fillna(' ') # fill NaN
 
     # # dump team results
     # if args.team:
@@ -35,18 +30,34 @@ def main():
     # get_results(df3)
 
 def read_csv(config):
-    """ Read and parse csv then return df
+    """ Read and parse csv then return Pandas DataFrame
     """
 
     global args
     df = pd.read_csv(filepath_or_buffer=args.csv, encoding="utf-8", sep=",")
     logging.debug(df)
 
+    # fill match_day if NaN
+    match_day = config['labels']['match_day']
+    timestamp = config['labels']['timestamp']
+    logging.debug(match_day)
+
+    for index, row in df.iterrows():
+        if pd.isna(row[match_day]):
+            ts = row[timestamp]
+            tokens = ts.split()
+            df.at[index, match_day] = tokens[0].replace('/', '-')
+
+    logging.debug(df)
+
+    # sort by match_day
+    df = df.sort_values(match_day, ascending=False)
+
     return df
 
 
 def read_config():
-    """ Read config (init file)
+    """ Read config file (ini)
     """
 
     global args
