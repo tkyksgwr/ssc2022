@@ -23,5 +23,6 @@
 * みほちゃん
 * ともちん
 * さっきー須崎さん
+* はせっちょ
 
 結果入力: https://forms.gle/cvXdkWhe7VHjEgbm6
