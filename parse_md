@@ -28,7 +28,8 @@ def main():
 
     df_res = count_by_player(config, df)
 
-    df_res.to_csv(args.output)
+    write_md(config, df_res)
+    # df_res.to_csv(args.output)
     
 
 def read_config():
@@ -169,6 +170,28 @@ def count_by_player(config, df):
 
     return df_res
 
+def write_md(config, df):
+    global args
+
+    df = df.sort_values('試合数', ascending=False)
+    l_2d = df.values.tolist()
+    logging.debug(l_2d)
+
+    with open(args.output, mode='w') as f:
+        # Header
+        f.write("# 2部選手別成績\n")
+        f.write("\n")
+        f.write("| 選手 | 試合数 | 勝敗 | 得失ゲーム数 |\n")
+        f.write("| ---: | :----: | :----: | :----: |\n")
+
+        for line in l_2d:
+            p = line[0]
+            m = line[1]
+            wl = "{}-{}".format(line[2], line[3])
+            wlg = "{}-{}".format(line[4], line[5])
+
+            f.write("| {} | {} | {} | {} |\n".format(p, m, wl, wlg))
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -186,8 +209,8 @@ def parse_args():
     )
     parser.add_argument(
         '-o', '--output',
-        default='output.csv',
-        help='Output CSV name (default: output.csv'
+        default='output.md',
+        help='Output MD name (default: output.csv'
     )
     parser.add_argument(
         '-v', '--verbose',
