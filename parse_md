@@ -1,0 +1,211 @@
+#!/usr/bin/env python
+# -*- coding:utf-8 -*-
+import argparse
+import configparser
+import logging
+import markdown2
+import os
+import pandas as pd
+import sys
+
+args = []
+
+def main():
+    global args
+    args = parse_args()
+
+    # logging
+    if args.verbose:
+        logging.basicConfig(level=logging.INFO)
+    if args.Debug:
+        logging.basicConfig(level=logging.DEBUG)
+    
+    config = read_config()
+    config['defaults']['md'] = args.md
+    show_config(config)
+
+    df = read_md(config)
+
+    df_res = count_by_player(config, df)
+
+    df_res.to_csv(args.output)
+    
+
+def read_config():
+    """ Read config file (ini)
+    """
+
+    global args
+
+    if args.config:
+        cfg = args.config
+    else:
+        cfg = os.path.abspath(__file__) + '.ini'
+    
+    if not os.path.isfile(cfg):
+        raise Exception(cfg + ' does not exist.')
+    
+    config = configparser.ConfigParser()
+    config.read(cfg)
+
+    return config
+
+def show_config(config):
+
+    sections = config.sections()
+    if sections:
+        logging.debug('config.sections:')
+        for key in sections:
+            logging.debug('  {}'.format(key))
+            for key2 in config[key]:
+                logging.debug('    {} = {}'.format(key2, config[key][key2]))
+
+def read_md(config):
+
+    md = config['defaults']['md']
+
+    # read md
+    with open(md) as f:
+        l = f.readlines()
+        logging.debug(l) 
+
+    # extract table
+    lines = []
+    for line in l:
+        if '| 2022' in line:
+            lines.append(line)
+
+    logging.debug(lines) 
+
+    # parse table
+    results_2d_list = []
+    for line in lines:
+        _, p1, raw_score, p2, _ = line.split(' | ')
+        #logging.debug("{} {} {}".format(p1, raw_score, p2))
+        p1_score, p2_score = raw_score.split('-')
+        p1_score = int(p1_score)
+        p2_score = int(p2_score)
+        if p1_score == p2_score:
+            p1_win = 0
+            p2_win = 0
+        elif p1_score > p2_score:
+            p1_win = 1
+            p2_win = 0
+        else:
+            p1_win = 0
+            p2_win = 1
+
+        res = [p1, p2, p1_score, p2_score, p1_win, p2_win]
+        logging.debug("{} {} {} {} {} {}".format(p1, p2, p1_score, p2_score, p1_win, p2_win))
+
+        results_2d_list.append(res)
+    
+    df = pd.DataFrame(results_2d_list)
+    df.columns = ['p1', 'p2', 'p1_score', 'p2_score', 'p1_win', 'p2_win']
+    logging.debug(df)
+
+    return df
+
+def count_by_player(config, df):
+
+    players = config['two']['members'].split('\n')
+    logging.debug(players)
+
+    results_2d_list = []
+    for p in players:
+        # Matches
+        df_bool = (df == p)
+        matches = df_bool.sum().sum()
+
+        df_p1 = df[df['p1'] == p]
+        logging.debug(df_p1)
+        df_p2 = df[df['p2'] == p]
+        logging.debug(df_p2)
+
+        # Win
+        df_p1_win_bool = (df_p1['p1_win'] == 1)
+        p1_wins = df_p1_win_bool.sum().sum()
+        logging.debug(df_p1_win_bool)
+        
+        df_p2_win_bool = (df_p2['p2_win'] == 1)
+        p2_wins = df_p2_win_bool.sum().sum()
+        logging.debug(df_p2_win_bool)
+        wins = p1_wins + p2_wins
+
+        # Lost
+        df_p1_lost_bool = (df_p1['p1_win'] == 0)
+        p1_losts = df_p1_lost_bool.sum().sum()
+        logging.debug(df_p1_lost_bool)
+        
+        df_p2_lost_bool = (df_p2['p2_win'] == 0)
+        p2_losts = df_p2_lost_bool.sum().sum()
+        logging.debug(df_p2_lost_bool)
+        losts = p1_losts + p2_losts
+
+        # Win games
+        p1_scores = df_p1['p1_score']
+        p1_score = p1_scores.sum()
+        p2_scores = df_p2['p2_score']
+        p2_score = p2_scores.sum()
+        logging.debug("{}, {}".format(p1_score, p2_score))
+        win_games = p1_score + p2_score
+
+        # Lost games
+        p1_lost_scores = df_p1['p2_score']
+        p1_lost_score = p1_lost_scores.sum()
+        p2_lost_scores = df_p2['p1_score']
+        p2_lost_score = p2_lost_scores.sum()
+        logging.debug("{}, {}".format(p1_lost_score, p2_lost_score))
+        lost_games = p1_lost_score + p2_lost_score
+
+        res = [p, matches, wins, losts, win_games, lost_games]
+        logging.debug("{}, {}, {}, {}, {}, {}".format(p, matches, wins, losts, win_games, lost_games))
+
+        results_2d_list.append(res)
+
+    df_res = pd.DataFrame(results_2d_list)
+    df_res.columns = ['名前', '試合数', '勝', '敗', '得ゲーム数', '失ゲーム数']
+    logging.debug(df_res)
+
+    return df_res
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description = '''
+        Parse markdown for SSC2022 and aggregate results
+        '''
+    )
+    parser.add_argument(
+        'md',
+        help='Markdown input'
+    )
+    parser.add_argument(
+        '-c', '--config',
+        help='Use another config file (default: <script_dir>/parse_md.ini'
+    )
+    parser.add_argument(
+        '-o', '--output',
+        default='output.csv',
+        help='Output CSV name (default: output.csv'
+    )
+    parser.add_argument(
+        '-v', '--verbose',
+        action='store_true',
+        help='Verbose mode'
+    )
+    parser.add_argument(
+        '-D', '--Debug',
+        action='store_true',
+        help='Debug mode'
+    )
+
+    args = parser.parse_args()
+
+    if not os.path.isfile(args.md):
+        raise Exception('{} does not exist.'.format(args.csv))
+    
+    return args
+
+if __name__ == '__main__':
+    main()
