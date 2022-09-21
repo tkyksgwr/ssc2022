@@ -87,14 +87,17 @@ def read_md(config):
         p1_score = int(p1_score)
         p2_score = int(p2_score)
         if p1_score == p2_score:
-            p1_win = 0
-            p2_win = 0
-        elif p1_score > p2_score:
+            p1_win = 0.5
+            p2_win = 0.5
+        elif (p1_score > p2_score) and (p1_score > 3):
             p1_win = 1
             p2_win = 0
-        else:
+        elif (p1_score < p2_score) and (p2_score > 3):
             p1_win = 0
             p2_win = 1
+        else:
+            p1_win = 0
+            p2_win = 0
 
         res = [p1, p2, p1_score, p2_score, p1_win, p2_win]
         logging.debug("{} {} {} {} {} {}".format(p1, p2, p1_score, p2_score, p1_win, p2_win))
